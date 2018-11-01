@@ -24,3 +24,34 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+***
+
+## Example
+
+```C#
+// Network
+var network = new Network();
+
+// Network settings
+network.Settings.RequiresApproval = false;
+network.Settings.MaxLinks         = 100u;
+
+// Network event
+network.OnFailed     += (link, failure) => {};
+network.OnUnlinked   += (link, reason) => {};
+network.OnPayload    += (link, payload) => {};
+network.OnApproval   += (link, payload) => {};
+network.OnRedirected += (link) => {};
+network.OnRedirect   += (link) => {};
+network.OnLinked     += (link) => {};
+network.OnStopped    += () => {};
+network.OnStarted    += () => {};
+
+// Starts on a specific port
+network.Start(15000);
+
+// Connects to
+network.Link("127.0.0.1:15000"); // Or
+network.Link("localhost:15000");
+```
