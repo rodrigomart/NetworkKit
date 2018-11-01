@@ -1,390 +1,282 @@
-﻿/// CONTAINERS IMPLEMENTATION
+﻿// MIT License
+//
+// Copyright (c) 2018 Rodrigo Martins 
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+// to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions
+// of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+// LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// Author:
+//    Rodrigo Martins <rodrigo.martins.071090@gmail.com>
+//
+
+using System;
+
+
 namespace NetworkKit.Containers {
 	/// <summary>
-	/// Container Table
+	/// Asynchronous table
 	/// </summary>
-	public class Table<ITEM> {
+	public partial class Table<KEY, ITEM> {
 		/// <summary>Entry</summary>
-		private sealed class Entry {
-			/// <summary>Hash Code</summary>
-			public int Hash;
+		private struct Entry {
+			/// <summary>Item</summary>
+			public ITEM Item;
 
-			/// <summary>Previous</summary>
-			public int Prev;
+			/// <summary>Key</summary>
+			public KEY Key;
+
+
+			/// <summary>Hash</summary>
+			public int Hash;
 
 			/// <summary>Next</summary>
 			public int Next;
-
-			/// <summary>Item</summary>
-			public ITEM Item;
 		};
 
 
-		/// <summary>IEnumerator</summary>
-		public sealed class IEnumerator {
-			/// <summary>Container Table</summary>
-			private readonly Table<ITEM> Table;
-
-			/// <summary>Index</summary>
-			private int Index;
-
-			/// <summary>Item</summary>
-			private ITEM Item;
-
-
-			/// <summary>Current entry</summary>
-			public object Current {
-				// Redeem without losing reference
-				get {return Item;}
-			}
-
-			/// <summary>Constructor</summary>
-			/// <param name="table">Table</param>
-			public IEnumerator(Table<ITEM> table){
-				this.Table = table;
-				Index = -1;
-			}
-
-
-			/// <summary>Reset</summary>
-			public void Reset(){
-				lock(this.Table.SyncLock)
-				{Index %= this.Table.Entries.Length;}
-			}
-
-			/// <summary>Next entry</summary>
-			/// <returns>True if not the last</returns>
-			public bool MoveNext(){
-				lock(this.Table.SyncLock){
-					if(this.Table.NumOfEntries <= 0)
-					return false;
-
-					// Next index
-					if(Index < 0) Index = 0;
-					else Index++;
-
-					// Index out of bounds
-					if(this.Table.Entries.Length <= Index)
-					return false;
-
-					// Next valid index
-					for(; Index < this.Table.Entries.Length; Index++)
-					if(this.Table.Entries[Index] != null){
-						// Redeem here to avoid reference loss
-						Item = this.Table.Entries[Index].Item;
-						return true;
-					}
-				}
-
-				return false;
-			}
-		};
-
-
-		/// <summary>Synchronization lock</summary>
+		/// <summary>Sync lock</summary>
 		private readonly object SyncLock = new object();
 
 
 		/// <summary>Entries</summary>
 		private Entry[] Entries;
 
-		/// <summary>Resize items</summary>
-		private bool ResizeItems;
+		/// <summary>Buckets</summary>
+		private int[] Buckets;
 
-		/// <summary>Number of Entries</summary>
-		private int NumOfEntries;
+		/// <summary>Free keys</summary>
+		private int FreeKeys;
+
+		/// <summary>Free list</summary>
+		private int FreeList;
+
+		/// <summary>Keys</summary>
+		private int Keys;
 
 
-		/// <summary>Queue is resizable</summary>
-		public virtual bool Resizable {
-			set {
-				lock(SyncLock)
-				{ResizeItems = value;}
-			}
-			get {
-				var resize = false;
-				lock(SyncLock)
-				{resize = ResizeItems;}
-				return resize;
-			}
+		/// <summary>Is empty</summary>
+		public virtual bool IsEmpty {
+			get {return ((Keys - FreeKeys) <= 0);}
 		}
 
-
-		/// <summary>Count itens</summary>
-		public virtual int Count {
-			get {
-				var count = 0;
-				lock(SyncLock)
-				{count = NumOfEntries;}
-				return count;
-			}
+		/// <summary>Count</summary>
+		public int Count {
+			get {return (Keys - FreeKeys);}
 		}
 
 
 		/// <summary>
-		/// Container Queue
+		/// Asynchronous table
 		/// </summary>
-		public Table() :
-			this(23)
-		{}
-
-		/// <summary> Containers Queue</summary>
-		/// <param name="size">Size</param>
-		public Table(int size){
-			// Next prime
-			size = Helper.NextPrime(size);
+		public Table(){
+			// Buckets
+			Buckets = new int[23];
+			for(int i = 0; i < Buckets.Length; i++)
+			Buckets[i] = -1;
 
 			// Entries
-			Entries = new Entry[size];
+			Entries = new Entry[23];
+			for(int i = 0; i < Entries.Length; i++)
+			Entries[i].Hash = -1;
+
+			// Empty list
+			FreeList = -1;
 		}
 
 
-		/// <summary>Get enumerator</summary>
-		/// <returns>Enumerator</returns>
-		public virtual IEnumerator GetEnumerator()
-		{return new IEnumerator(this);}
+		/// <summary>Add an item to a key</summary>
+		/// <param name="key">Key <typeparamref name="KEY"/></param>
+		/// <param name="item">Item <typeparamref name="ITEM"/></param>
+		public void Add(KEY key, ITEM item){
+			lock(SyncLock)
+			{InternalAdd(key, item);}
+		}
 
+		/// <summary>Clear the table</summary>
+		public void Clear(){
+			if(Keys <= 0) return;
 
-		/// <summary>Add item</summary>
-		/// <param name="item">Item</param>
-		public virtual void Add(ITEM item){
 			lock(SyncLock){
-				// Resize if resizable
+				for(int i = 0; i < Buckets.Length; i++)
+				Buckets[i] = -1;
+				
+				Array.Clear(Entries, 0, Keys);
+				Entries = new Entry[23];
+				for(int i = 0; i < Entries.Length; i++)
+				Entries[i].Hash = -1;
+
+				FreeKeys = 0;
+				FreeList = -1;
+				Keys = 0;
+			}
+		}
+
+		/// <summary>Checks if it contains the key</summary>
+		/// <param name="key">Key <typeparamref name="KEY"/></param>
+		/// <returns>True if it contains the item</returns>
+		public bool Contains(KEY key)
+		{return InternalFind(key) >= 0;}
+
+		/// <summary>Search for an item by key</summary>
+		/// <param name="key">Key <typeparamref name="KEY"/></param>
+		/// <returns>Item <typeparamref name="ITEM"/></returns>
+		public ITEM Find(KEY key){
+			lock(SyncLock){
+				int i = InternalFind(key);
+				if(i >= 0) return Entries[i].Item;
+			}
+
+			return default(ITEM);
+		}
+
+		/// <summary>Remove item with key</summary>
+		/// <param name="key">Key <typeparamref name="KEY"/></param>
+		public void Remove(KEY key){
+			lock(SyncLock)
+			{InternalRemove(key);}
+		}
+
+
+		/// <summary>Internal Addition</summary>
+		/// <param name="key">Key <typeparamref name="KEY"/></param>
+		/// <param name="item">Item <typeparamref name="ITEM"/></param>
+		private void InternalAdd(object key, object item){
+			if(key == null) throw new ArgumentNullException(nameof(key));
+
+			// Positive Hash
+			var hash = key.GetHashCode() & 2147483647;
+
+			// Bucket
+			var bucket = hash % Buckets.Length;
+
+			// Duplicate entry verification
+			for(int i = Buckets[bucket]; i >= 0; i = Entries[i].Next){
 				if(
-					ResizeItems &&
-					NumOfEntries == Entries.Length
-				){
-					// Next size
-					var size = Helper.NextPrime(Entries.Length);
-
-					// New matrix
-					Entry[] newEntries = new Entry[size];
-					System.Array.Copy(Entries, newEntries, NumOfEntries);
-
-					// Moves pairs by recalculating indexes
-					for(int index = 0; index < Entries.Length; index++){
-						if(Entries[index] == null) continue;
-						InternalAdd(Entries[index].Item);
-					}
-
-					Entries = newEntries;
-				}
-
-				// Overloaded table
-				if(NumOfEntries == Entries.Length)
-				throw new System.OverflowException("Table overflow");
-
-				InternalAdd(item);
+					Entries[i].Hash == hash &&
+					Entries[i].Key.Equals(key)
+				) return;
 			}
-		}
-
-
-		/// <summary>Clear</summary>
-		public virtual void Clear(){
-			if(NumOfEntries <= 0) return;
-
-			lock(SyncLock){
-				// Removes all entries
-				for(int index = 0; index < Entries.Length; index++)
-					if(Entries[index] != null){
-						Entries[index].Item = default(ITEM);
-						Entries[index] = null;
-						NumOfEntries--;
-					}
-			}
-		}
-
-
-		/// <summary>Find item</summary>
-		/// <param name="item">Item</param>
-		/// <returns>Item or null</returns>
-		public virtual ITEM Find(object item){
-			if(NumOfEntries <= 0) return default(ITEM);
-
-			ITEM value = default(ITEM);
-
-			lock(SyncLock){
-				// Valid hash
-				var hash = item.GetHashCode() & 2147483647;
-
-				// Index
-				var index = hash % Entries.Length;
-
-				// There are items in the index
-				if(Entries[index] != null){
-					// Checks whether or if it belongs to the same index group
-					if((Entries[index].Hash % Entries.Length) == index){
-						// Interaction between successors
-						while(index > -1){
-							// Go to the next one if it is not the item
-							if(!Entries[index].Item.Equals(item)){
-								index = Entries[index].Next;
-								continue;
-							}
-
-							// Returns the searched item
-							value = Entries[index].Item;
-							break;
-						}
-					}
-				}
-			}
-
-			return value;
-		}
-
-
-		/// <summary>Contains item</summary>
-		/// <param name="item">Item</param>
-		public virtual bool Contains(object item){
-			object obj = Find(item);
-			return !(obj == null);
-		}
-
-
-		/// <summary>Remove item</summary>
-		/// <param name="item">Item</param>
-		public virtual void Remove(ITEM item){
-			lock (SyncLock)
-			{InternalRemove(item);}
-		}
-
-
-		/// <summary>Internal add item</summary>
-		/// <param name="item">Item</param>
-		protected void InternalAdd(ITEM item){
-			// Next entry
-			var next = -1;
-
-			// hash
-			var hash = item.GetHashCode() & 2147483647;
 
 			// Index
-			var index = hash % Entries.Length;
+			int index;
+			if(FreeKeys > 0){
+				index = FreeList;
+				FreeList = Entries[index].Next;
+				FreeKeys--;
+			} else {
+				// Resizes storage
+				if(Keys == Entries.Length){
+					InternalResize();
 
-			// Overlap Entries
-			if(Entries[index] != null){
-				// Reallocation of Entries
-				var reindex = 0;
-				while(Entries[reindex] != null)
-				reindex++;
-
-				// Overlay another Entries
-				if(Entries[index].Hash % Entries.Length != index){
-					// Move to a new index
-					Entries[reindex] = Entries[index];
-
-					// Change the connection rate
-					var prev = Entries[reindex].Prev;
-					Entries[prev].Next = reindex;
+					// New bucket index
+					bucket = hash % Buckets.Length;
 				}
 
-				// Overlap Entries
-				else {
-					// Move to a new index
-					Entries[reindex] = Entries[index];
-
-					// Change the connection rate
-					Entries[reindex].Prev = index;
-
-					next = reindex;
-				}
+				index = Keys;
+				Keys++;
 			}
 
-			// Register
-			Entries[index] = new Entry();
-			Entries[index].Item = item;
-			Entries[index].Prev = -1;
-			Entries[index].Next = next;
+			// Entry
 			Entries[index].Hash = hash;
+			Entries[index].Next = Buckets[bucket];
+			Entries[index].Item = (ITEM)item;
+			Entries[index].Key  = (KEY)key;
 
-			// Number os Entries
-			NumOfEntries++;
+			// Bucket index
+			Buckets[bucket] = index;
 		}
 
-		/// <summary>Internal remove item</summary>
-		/// <param name="item">item</param>
-		protected void InternalRemove(object item){
-			// Hash
-			var hash = item.GetHashCode() & 2147483647;
+		/// <summary>Internal Search</summary>
+		/// <param name="key">Key <typeparamref name="KEY"/></param>
+		/// <returns>Index entry</returns>
+		private int InternalFind(object key){
+			if(key == null) throw new ArgumentNullException(nameof(key));
 
-			// Index
-			var index = hash % Entries.Length;
+			// Positive Hash
+			var hash = key.GetHashCode() & 2147483647;
 
-			// Nonexistent index
-			if(Entries[index] == null) return;
+			// Bucket
+			var bucket = hash % Buckets.Length;
 
-			// Index occupied by another entry
-			// Usually this entry does not belong to the same index group
-			if((Entries[index].Hash % Entries.Length) != index) return;
+			// Search the entry index
+			for(int i = Buckets[bucket]; i >= 0; i = Entries[i].Next)
+			if(Entries[i].Hash == hash && Entries[i].Key.Equals(key)) return i;
 
-			// Links of indices
-			var prev = Entries[index].Prev;
-			var next = Entries[index].Next;
+			// Not found
+			return -1;
+		}
 
-			// Entry with successors
-			if(next > -1){
-				// Interaction between successors
-				while(next > -1){
-					// Next interaction
-					if(Entries[index].Hash != hash){
-						prev = Entries[next].Prev;
-						next = Entries[next].Next;
-						index = next;
-						continue;
-					}
+		/// <summary>Internal removal</summary>
+		/// <param name="key">Key <typeparamref name="KEY"/></param>
+		private void InternalRemove(object key){
+			if(key == null) throw new ArgumentNullException(nameof(key));
 
-					// First index
-					if(prev == -1){
-						// Remove the entry
-						Entries[index].Item = default(ITEM);
-						Entries[index] = null;
+			// Positive hash
+			var hash = key.GetHashCode() & 2147483647;
 
-						// Move the successor
-						Entries[index] = Entries[next];
-						Entries[index].Prev = -1;
+			// Bucket
+			var bucket = hash % Buckets.Length;
 
-						// Cancels the successor entry
-						Entries[next] = null;
+			// Last key
+			int last = -1;
 
-						// Change the connection rate
-						next = Entries[index].Next;
-						if (next > -1) Entries[next].Prev = index;
-					}
+			// Find entry
+			for(int i = Buckets[bucket]; i >= 0; last = i, i = Entries[i].Next){
+				if(Entries[i].Hash == hash && Entries[i].Key.Equals(key)){
+					if(last < 0) Buckets[bucket] = Entries[i].Next;
+					else Entries[last].Next = Entries[i].Next;
 
-					// Intermediate entry
-					else {
-						// Change the connection rate
-						Entries[prev].Next = next;
-						Entries[next].Prev = prev;
+					Entries[i].Hash = -1;
+					Entries[i].Next = FreeList;
+					Entries[i].Item = default(ITEM);
+					Entries[i].Key = default(KEY);
 
-						// Remove the entry
-						Entries[index].Item = default(ITEM);
-						Entries[index] = null;
-					}
+					FreeList = i;
+					FreeKeys++;
 
-					// Number
-					NumOfEntries--;
+					return;
+				}
+			}
+		}
 
-					break;
+		/// <summary>Internal resizing</summary>
+		private void InternalResize(){
+			// Calculate the new size
+			var size = (int)(Keys * 0.5f);
+			size = Helper.NextPrime(Keys + size);
+
+			// New Buckets
+			int[] newBuckets = new int[size];
+			for(int i = 0; i < newBuckets.Length; i++) newBuckets[i] = -1;
+
+			// New entries
+			Entry[] newEntries = new Entry[size];
+			Array.Copy(Entries, 0, newEntries, 0, Keys);
+
+			// Re-indexing
+			for(int i = 0; i < Keys; i++){
+				if(newEntries[i].Hash >= 0){
+					int bucket = newEntries[i].Hash % size;
+
+					newEntries[i].Next = newBuckets[bucket];
+					newBuckets[bucket] = i;
 				}
 			}
 
-			// Last installment or only
-			else {
-				// Different entry
-				if(Entries[index].Hash != hash) return;
-
-				// Changes the predecessor's connection
-				if(prev > -1) Entries[prev].Next = -1;
-
-				// Remove the entry
-				Entries[index].Item = default(ITEM);
-				Entries[index] = null;
-
-				// Number
-				NumOfEntries--;
-			}
+			// Storage Exchange
+			Buckets = newBuckets;
+			Entries = newEntries;
 		}
 	};
 };

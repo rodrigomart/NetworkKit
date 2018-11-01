@@ -20,58 +20,40 @@
 //    Rodrigo Martins <rodrigo.martins.071090@gmail.com>
 //
 
+using System.Runtime.Serialization;
+using System;
 
-namespace NetworkKit.Containers {
+
+namespace NetworkKit.Networking {
 	/// <summary>
-	/// Helper
+	/// Network Exception
 	/// </summary>
-	internal static class Helper {
-		/// <summary>Next prime</summary>
-		/// <param name="num">Number</param>
-		/// <returns>Integer</returns>
-		/// <exception cref="System.Exception">
-		/// A positive integer was expected
-		/// </exception>
-		public static int NextPrime(int num){
-			if(num < 0) throw new System.Exception("Positive integer was expected");
+	[Serializable]
+	public class NetworkException : Exception {
+		/// <summary>
+		/// Network Exception
+		/// </summary>
+		public NetworkException(){}
 
-			// Make sure it is an odd number except 2
-			if(num % 2 == 0 && num != 2) num++;
+		/// <summary>Network Exception</summary>
+		/// <param name="exception">Exception</param>
+		public NetworkException(string exception) :
+			base(exception)
+		{}
 
-			// Primes
-			int[] primes = {2,3,5,7,11,13,17,19,23,29,31,37,41,43};
+		/// <summary>Network Exception</summary>
+		/// <param name="exception">Exception</param>
+		/// <param name="inner">Inner</param>
+		public NetworkException(string exception, Exception inner) :
+			base(exception, inner)
+		{}
 
-			// Next prime
-			var prime = num;
-			while(prime < 2147483647){
-				// Checks if divisible
-				bool divisible = false;
-				for(var i = 0; i < primes.Length; i++){
-					if(prime == primes[i]) break;
 
-					if((prime % primes[i]) == 0){
-						divisible = true;
-						break;
-					}
-				}
-
-				// It is divisible
-				if(divisible){
-					// Increment
-					if(prime <= 2) prime++;
-					else prime += 2;
-					continue;
-				}
-
-				// Valid number
-				if(prime > num) break;
-
-				// Increment
-				if(prime <= 2) prime++;
-				else prime += 2;
-			}
-
-			return prime;
-		}
+		/// <summary>Network Exception</summary>
+		/// <param name="info">Information</param>
+		/// <param name="context">Context</param>
+		protected NetworkException(SerializationInfo info, StreamingContext context) :
+			base(info, context)
+		{}
 	};
 };

@@ -20,58 +20,19 @@
 //    Rodrigo Martins <rodrigo.martins.071090@gmail.com>
 //
 
+namespace NetworkKit.Networking {
+	/// <summary>Failure handler delegate</summary>
+	public delegate void FailureHandler(Link link, Failure failure);
 
-namespace NetworkKit.Containers {
-	/// <summary>
-	/// Helper
-	/// </summary>
-	internal static class Helper {
-		/// <summary>Next prime</summary>
-		/// <param name="num">Number</param>
-		/// <returns>Integer</returns>
-		/// <exception cref="System.Exception">
-		/// A positive integer was expected
-		/// </exception>
-		public static int NextPrime(int num){
-			if(num < 0) throw new System.Exception("Positive integer was expected");
+	/// <summary>Reason handler delegate</summary>
+	public delegate void ReasonHandler(Link link, Reason reason);
 
-			// Make sure it is an odd number except 2
-			if(num % 2 == 0 && num != 2) num++;
+	/// <summary>Payload handler delegate</summary>
+	public delegate void PayloadHandler(Link link, Payload payload);
 
-			// Primes
-			int[] primes = {2,3,5,7,11,13,17,19,23,29,31,37,41,43};
+	/// <summary>Link handler delegate</summary>
+	public delegate void LinkHandler(Link link);
 
-			// Next prime
-			var prime = num;
-			while(prime < 2147483647){
-				// Checks if divisible
-				bool divisible = false;
-				for(var i = 0; i < primes.Length; i++){
-					if(prime == primes[i]) break;
-
-					if((prime % primes[i]) == 0){
-						divisible = true;
-						break;
-					}
-				}
-
-				// It is divisible
-				if(divisible){
-					// Increment
-					if(prime <= 2) prime++;
-					else prime += 2;
-					continue;
-				}
-
-				// Valid number
-				if(prime > num) break;
-
-				// Increment
-				if(prime <= 2) prime++;
-				else prime += 2;
-			}
-
-			return prime;
-		}
-	};
+	/// <summary>State handler delegate</summary>
+	public delegate void StateHandler();
 };
