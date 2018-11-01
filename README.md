@@ -39,7 +39,7 @@ network.Link("localhost:15000");
 network.Settings.UseStepEvents = true;
 
 // Call the method "Step ()" every frame
-void Upddate(){
+void Update(){
   network.Step();
 }
 ```
