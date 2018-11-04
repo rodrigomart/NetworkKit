@@ -181,25 +181,31 @@ namespace NetworkKit.Networking {
 			Raise(EventType.Started);
 		}
 
-		/// <summary>Parar</summary>
+		/// <summary>Stop</summary>
 		public void Stop(){
-			// Se não estiver executando
+			// If it is not running
 			if(!Running) return;
 
-			// Para a execução
+			// End execution
 			Running = false;
 
-			// Finaliza a thread
+			// Finalize thread
 			_Thread.Join();
 
-			// Finaliza o socket
+			// Finalize socket
 			_Socket.Close();
 
-			// Pare o cronômetro
+			// Stop the stopwatch
 			_Stopwatch.Stop();
 
+			// Clear events
+			_Events.Clear();
+			
 			// Raise an event
 			Raise(EventType.Stopped);
+			
+			// Shoot the events
+			Step();
 		}
 
 
