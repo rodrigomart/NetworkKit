@@ -312,6 +312,7 @@ namespace NetworkKit.Networking {
 		/// Network time.
 		/// Time is given in milliseconds counting from Start.
 		/// </summary>
+		[Obsolete("This method will be removed shortly")]
 		public uint Time()
 		{return (uint)_Stopwatch.ElapsedMilliseconds;}
 
