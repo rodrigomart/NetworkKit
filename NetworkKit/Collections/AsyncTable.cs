@@ -23,18 +23,18 @@
 using System;
 
 
-namespace NetworkKit.Containers {
+namespace NetworkKit.Collections {
 	/// <summary>
 	/// Asynchronous table
 	/// </summary>
-	public partial class Table<KEY, ITEM> {
+	public partial class AsyncTable<KEY, ITEM> {
 		/// <summary>Entry</summary>
 		private struct Entry {
 			/// <summary>Item</summary>
-			public ITEM Item;
+			public object Item;
 
 			/// <summary>Key</summary>
-			public KEY Key;
+			public object Key;
 
 
 			/// <summary>Hash</summary>
@@ -46,7 +46,7 @@ namespace NetworkKit.Containers {
 
 
 		/// <summary>Sync lock</summary>
-		private readonly object SyncLock = new object();
+		private readonly object SyncLock;
 
 
 		/// <summary>Entries</summary>
@@ -71,15 +71,18 @@ namespace NetworkKit.Containers {
 		}
 
 		/// <summary>Count</summary>
-		public int Count {
+		public virtual int Count {
 			get {return (Keys - FreeKeys);}
 		}
 
 
 		/// <summary>
-		/// Asynchronous table
+		/// Asynchronous Table
 		/// </summary>
-		public Table(){
+		public AsyncTable(){
+			// Sync lock
+			SyncLock = new object();
+
 			// Buckets
 			Buckets = new int[23];
 			for(int i = 0; i < Buckets.Length; i++)
@@ -95,22 +98,14 @@ namespace NetworkKit.Containers {
 		}
 
 
-		/// <summary>Add an item to a key</summary>
-		/// <param name="key">Key <typeparamref name="KEY"/></param>
-		/// <param name="item">Item <typeparamref name="ITEM"/></param>
-		public void Add(KEY key, ITEM item){
-			lock(SyncLock)
-			{InternalAdd(key, item);}
-		}
-
-		/// <summary>Clear the table</summary>
-		public void Clear(){
+		/// <summary>Clear</summary>
+		public virtual void Clear(){
 			if(Keys <= 0) return;
 
 			lock(SyncLock){
 				for(int i = 0; i < Buckets.Length; i++)
 				Buckets[i] = -1;
-				
+
 				Array.Clear(Entries, 0, Keys);
 				Entries = new Entry[23];
 				for(int i = 0; i < Entries.Length; i++)
@@ -122,35 +117,34 @@ namespace NetworkKit.Containers {
 			}
 		}
 
-		/// <summary>Checks if it contains the key</summary>
-		/// <param name="key">Key <typeparamref name="KEY"/></param>
-		/// <returns>True if it contains the item</returns>
-		public bool Contains(KEY key)
-		{return InternalFind(key) >= 0;}
 
-		/// <summary>Search for an item by key</summary>
-		/// <param name="key">Key <typeparamref name="KEY"/></param>
-		/// <returns>Item <typeparamref name="ITEM"/></returns>
-		public ITEM Find(KEY key){
-			lock(SyncLock){
-				int i = InternalFind(key);
-				if(i >= 0) return Entries[i].Item;
-			}
-
-			return default(ITEM);
+		/// <summary>Add item to a key</summary>
+		/// <param name="key">Key</param>
+		/// <param name="item">Item</param>
+		public virtual void Add(KEY key, ITEM item){
+			lock(SyncLock)
+			{InternalAdd(key, item);}
 		}
 
-		/// <summary>Remove item with key</summary>
-		/// <param name="key">Key <typeparamref name="KEY"/></param>
-		public void Remove(KEY key){
+		/// <summary>Contains item</summary>
+		/// <param name="key">Key</param>
+		/// <returns>True if it contains the item</returns>
+		public virtual bool Contains(KEY key){
+			lock(SyncLock)
+			{return InternalFind(key) >= 0;}
+		}
+
+		/// <summary>Remove item</summary>
+		/// <param name="key">Key</param>
+		public virtual void Remove(KEY key){
 			lock(SyncLock)
 			{InternalRemove(key);}
 		}
 
 
 		/// <summary>Internal Addition</summary>
-		/// <param name="key">Key <typeparamref name="KEY"/></param>
-		/// <param name="item">Item <typeparamref name="ITEM"/></param>
+		/// <param name="key">Key</param>
+		/// <param name="item">Item</param>
 		private void InternalAdd(object key, object item){
 			if(key == null) throw new ArgumentNullException(nameof(key));
 
@@ -174,7 +168,8 @@ namespace NetworkKit.Containers {
 				index = FreeList;
 				FreeList = Entries[index].Next;
 				FreeKeys--;
-			} else {
+			}
+			else {
 				// Resizes storage
 				if(Keys == Entries.Length){
 					InternalResize();
@@ -190,15 +185,15 @@ namespace NetworkKit.Containers {
 			// Entry
 			Entries[index].Hash = hash;
 			Entries[index].Next = Buckets[bucket];
-			Entries[index].Item = (ITEM)item;
-			Entries[index].Key  = (KEY)key;
+			Entries[index].Item = item;
+			Entries[index].Key  = key;
 
 			// Bucket index
 			Buckets[bucket] = index;
 		}
 
 		/// <summary>Internal Search</summary>
-		/// <param name="key">Key <typeparamref name="KEY"/></param>
+		/// <param name="key">Key</param>
 		/// <returns>Index entry</returns>
 		private int InternalFind(object key){
 			if(key == null) throw new ArgumentNullException(nameof(key));
@@ -218,7 +213,7 @@ namespace NetworkKit.Containers {
 		}
 
 		/// <summary>Internal removal</summary>
-		/// <param name="key">Key <typeparamref name="KEY"/></param>
+		/// <param name="key">Key</param>
 		private void InternalRemove(object key){
 			if(key == null) throw new ArgumentNullException(nameof(key));
 
@@ -239,8 +234,8 @@ namespace NetworkKit.Containers {
 
 					Entries[i].Hash = -1;
 					Entries[i].Next = FreeList;
-					Entries[i].Item = default(ITEM);
-					Entries[i].Key = default(KEY);
+					Entries[i].Item = null;
+					Entries[i].Key  = null;
 
 					FreeList = i;
 					FreeKeys++;
@@ -253,8 +248,7 @@ namespace NetworkKit.Containers {
 		/// <summary>Internal resizing</summary>
 		private void InternalResize(){
 			// Calculate the new size
-			var size = (int)(Keys * 0.5f);
-			size = Helper.NextPrime(Keys + size);
+			var size = Prime.Next(Keys + 32);
 
 			// New Buckets
 			int[] newBuckets = new int[size];

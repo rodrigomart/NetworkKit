@@ -25,7 +25,7 @@ using System;
 
 
 namespace NetworkKit.Networking {
-	using Containers;
+	using Collections;
 
 
 	/// <summary>
@@ -46,13 +46,13 @@ namespace NetworkKit.Networking {
 	/// </summary>
 	public class Link {
 		/// <summary>Payloads</summary>
-		private readonly Table<UInt32, Payload> _Payloads;
+		private readonly AsyncTable<UInt32, Payload> _Payloads;
 
 		/// <summary>Cache</summary>
-		private readonly Table<UInt16, Payload> _Cached;
+		private readonly AsyncTable<UInt16, Payload> _Cached;
 
 		/// <summary>Ack</summary>
-		private readonly Table<UInt16, UInt32>  _Acks;
+		private readonly AsyncTable<UInt16, UInt32>  _Acks;
 
 
 		/// <summary>Network core</summary>

@@ -23,15 +23,15 @@
 using System;
 
 
-namespace NetworkKit.Containers {
+namespace NetworkKit.Collections {
 	/// <summary>
-	/// Asynchronous stack
+	/// Asynchronous queue
 	/// </summary>
-	public class Stack<ITEM> {
+	public class AsyncQueue<ITEM> {
 		/// <summary>Node</summary>
 		private class Node {
 			/// <summary>Item</summary>
-			public ITEM Item;
+			public object Item;
 
 			/// <summary>Next</summary>
 			public Node Next;
@@ -39,11 +39,14 @@ namespace NetworkKit.Containers {
 
 
 		/// <summary>Sync lock</summary>
-		private readonly object SyncLock = new object();
+		private readonly object SyncLock;
 
 
-		/// <summary>Head stack</summary>
+		/// <summary>Head queue</summary>
 		private Node Head;
+
+		/// <summary>Tail queue</summary>
+		private Node Tail;
 
 		/// <summary>Number of items</summary>
 		private int Items;
@@ -61,90 +64,105 @@ namespace NetworkKit.Containers {
 
 
 		/// <summary>
-		/// Asynchronous stack
+		/// Asynchronous queue
 		/// </summary>
-		public Stack()
-		{Head = null;}
+		public AsyncQueue(){
+			// Sync lock
+			SyncLock = new object();
+
+			Head = null;
+			Tail = null;
+		}
 
 
-		/// <summary>Clear the stack</summary>
+		/// <summary>Clear</summary>
 		public virtual void Clear(){
 			lock(SyncLock){
-				Head  = null;
+				Head = null;
+				Tail = null;
+
 				Items = 0;
 			}
 		}
 
-		/// <summary>Push to the stack</summary>
-		/// <param name="item">Item <typeparamref name="ITEM"/></param>
-		public void Push(ITEM item){
-			if((object)item == null)
-			throw new ArgumentNullException(nameof(item));
+		/// <summary>Enqueue</summary>
+		/// <param name="item">Item</param>
+		public virtual void Enqueue(ITEM item){
+			if(item == null) throw new ArgumentNullException(nameof(item));
 
 			lock(SyncLock){
-				var node  = new Node();
+				var node = new Node();
 				node.Item = item;
-				node.Next = Head;
 
-				Head = node;
+				// If the head is empty
+				if(Head == null) Head = node;
+
+				// It is not empty
+				else Tail.Next = node;
+
+				// Put on the tail
+				Tail = node;
 
 				Items++;
 			}
 		}
 
-		/// <summary>Remove from stack</summary>
-		/// <returns>Item <typeparamref name="ITEM"/></returns>
-		public ITEM Pop(){
+		/// <summary>Dequeue</summary>
+		/// <returns>Item</returns>
+		public virtual ITEM Dequeue(){
 			ITEM item;
-			TryPop(out item);
+			TryDequeue(out item);
 			return item;
 		}
 
 		/// <summary>Get an item without removing</summary>
-		/// <returns>Item <typeparamref name="ITEM"/></returns>
-		public ITEM Peek(){
+		/// <returns>Item</returns>
+		public virtual ITEM Peek(){
 			ITEM item;
 			TryPeek(out item);
 			return item;
 		}
 
-		/// <summary>Remove from stack</summary>
+		/// <summary>Try dequeue</summary>
 		/// <param name="item">Item <typeparamref name="ITEM"/></param>
 		/// <returns>True if there is an item</returns>
-		public bool TryPop(out ITEM item){
+		public virtual bool TryDequeue(out ITEM item){
 			lock(SyncLock){
-				// If there are items in the stack
-				if(Head != null){
-					item = Head.Item;
-					Head = Head.Next;
-
-					Items--;
-					return true;
+				// If the head is empty
+				if(Head == null){
+					item = default(ITEM);
+					return false;
 				}
 
-				// Stack is empty
-				else item = default(ITEM);
+				// It is not empty
+				item = (ITEM)Head.Item;
+				Head = Head.Next;
+
+				// If it is the last item
+				if(Head == null) Tail = null;
+
+				Items--;
 			}
 
-			return false;
+			return true;
 		}
 
 		/// <summary>Try to pick up an item without removing</summary>
-		/// <param name="item">Item <typeparamref name="ITEM"/></param>
+		/// <param name="item">Item</param>
 		/// <returns>True if there is an item</returns>
-		public bool TryPeek(out ITEM item){
+		public virtual bool TryPeek(out ITEM item){
 			lock(SyncLock){
-				// If there are items in the stack
-				if(Head != null){
-					item = Head.Item;
-					return true;
+				// If the head is empty
+				if(Head == null){
+					item = default(ITEM);
+					return false;
 				}
 
-				// Stack is empty
-				else item = default(ITEM);
+				// It is not empty
+				item = (ITEM)Head.Item;
 			}
 
-			return false;
+			return true;
 		}
 	};
 };

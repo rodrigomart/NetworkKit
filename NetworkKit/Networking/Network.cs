@@ -28,7 +28,7 @@ using System;
 
 
 namespace NetworkKit.Networking {
-	using Containers;
+	using Collections;
 
 
 	/// <summary>
@@ -36,10 +36,10 @@ namespace NetworkKit.Networking {
 	/// </summary>
 	public class Network {
 		/// <summary>Table of links</summary>
-		private readonly Table<EndPoint, Link> _Linktable;
+		private readonly AsyncTable<EndPoint, Link> _Linktable;
 
 		/// <summary>Event queue</summary>
-		private readonly Queue<RaiseEvent> _Events;
+		private readonly AsyncQueue<RaiseEvent> _Events;
 
 		/// <summary>Stopwatch</summary>
 		private readonly Stopwatch _Stopwatch;
@@ -115,10 +115,10 @@ namespace NetworkKit.Networking {
 		/// <param name="settings">Settings</param>
 		public Network(Settings settings){
 			// Table of links
-			_Linktable = new Table<EndPoint, Link>();
+			_Linktable = new AsyncTable<EndPoint, Link>();
 
 			// Event queue
-			_Events = new Queue<RaiseEvent>();
+			_Events = new AsyncQueue<RaiseEvent>();
 
 			// Stopwatch
 			_Stopwatch = new Stopwatch();
@@ -128,10 +128,15 @@ namespace NetworkKit.Networking {
 		}
 
 
-		/// <summary>
-		/// Initializes the network on a random port
-		/// </summary>
-		public void Start(){Start(0);}
+		/// <summary>Initializes on a random port</summary>
+		/// <returns>Port number selected</returns>
+		public ushort Start(){
+			Start(0);
+
+			// Gets the current port number
+			var ipEndPoint = _Socket.LocalEndPoint as IPEndPoint;
+			return ((ushort)ipEndPoint.Port);
+		}
 
 		/// <summary>Initializes to a specified port</summary>
 		/// <param name="port">Port (1 - 65535)</param>
@@ -272,39 +277,39 @@ namespace NetworkKit.Networking {
 			while(_Events.TryDequeue(out raiseEvent)){
 				// Raise start event
 				if(raiseEvent.EventType == EventType.Started)
-				OnStarted.Invoke();
+				OnStarted?.Invoke();
 
 				// Raise stop event
 				if(raiseEvent.EventType == EventType.Stopped)
-				OnStopped.Invoke();
+				OnStopped?.Invoke();
 
 				// Raise link event
 				if(raiseEvent.EventType == EventType.Linked)
-				OnLinked.Invoke(raiseEvent.Link);
+				OnLinked?.Invoke(raiseEvent.Link);
 
 				// Raise redirection event
 				if(raiseEvent.EventType == EventType.Redirect)
-				OnRedirect.Invoke(raiseEvent.Link);
+				OnRedirect?.Invoke(raiseEvent.Link);
 
 				// Raise post redirection event
 				if(raiseEvent.EventType == EventType.Redirected)
-				OnRedirected.Invoke(raiseEvent.Link);
+				OnRedirected?.Invoke(raiseEvent.Link);
 
 				// Raise approval event
 				if(raiseEvent.EventType == EventType.Approval)
-				OnApproval.Invoke(raiseEvent.Link, raiseEvent.Payload);
+				OnApproval?.Invoke(raiseEvent.Link, raiseEvent.Payload);
 
 				// Raise payload event
 				if(raiseEvent.EventType == EventType.Payload)
-				OnPayload.Invoke(raiseEvent.Link, raiseEvent.Payload);
+				OnPayload?.Invoke(raiseEvent.Link, raiseEvent.Payload);
 
 				// Raise unlink event
 				if(raiseEvent.EventType == EventType.Unlinked)
-				OnUnlinked.Invoke(raiseEvent.Link, raiseEvent.Reason);
+				OnUnlinked?.Invoke(raiseEvent.Link, raiseEvent.Reason);
 
 				// Raise failure event
 				if(raiseEvent.EventType == EventType.Failed)
-				OnFailed.Invoke(raiseEvent.Link, raiseEvent.Failure);
+				OnFailed?.Invoke(raiseEvent.Link, raiseEvent.Failure);
 			}
 		}
 
@@ -330,6 +335,7 @@ namespace NetworkKit.Networking {
 
 
 		/// <summary>Inlet</summary>
+		[Obsolete("This method will be removed shortly")]
 		internal void Inlet(){
 			try {
 				// Network address
@@ -397,6 +403,7 @@ namespace NetworkKit.Networking {
 		/// <summary>Outlet</summary>
 		/// <param name="endPoint">Network address</param>
 		/// <param name="stream">Data stream</param>
+		[Obsolete("This method will be modified shortly")]
 		internal void Outlet(EndPoint endPoint, BitStream stream){
 			if(_Socket == null) return;
 
@@ -531,6 +538,7 @@ namespace NetworkKit.Networking {
 		/// <summary>Gets the end point</summary>
 		/// <param name="address">Connection address</param>
 		/// <returns>Network address</returns>
+		[Obsolete("This method will be removed shortly")]
 		internal static EndPoint GetEndPoint(string address){
 			// IP Address
 			IPAddress resolved = IPAddress.Loopback;

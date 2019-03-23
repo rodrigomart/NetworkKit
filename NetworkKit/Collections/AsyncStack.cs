@@ -20,18 +20,18 @@
 //    Rodrigo Martins <rodrigo.martins.071090@gmail.com>
 //
 
-using NetworkKit.System;
+using System;
 
 
-namespace Containers {
+namespace NetworkKit.Collections {
 	/// <summary>
-	/// Asynchronous queue
+	/// Asynchronous stack
 	/// </summary>
-	public class Queue<ITEM> {
+	public class AsyncStack<ITEM> {
 		/// <summary>Node</summary>
 		private class Node {
 			/// <summary>Item</summary>
-			public ITEM Item;
+			public object Item;
 
 			/// <summary>Next</summary>
 			public Node Next;
@@ -39,14 +39,11 @@ namespace Containers {
 
 
 		/// <summary>Sync lock</summary>
-		private readonly object SyncLock = new object();
+		private readonly object SyncLock;
 
 
-		/// <summary>Head queue</summary>
+		/// <summary>Head stack</summary>
 		private Node Head;
-
-		/// <summary>Tail queue</summary>
-		private Node Tail;
 
 		/// <summary>Number of items</summary>
 		private int Items;
@@ -64,102 +61,93 @@ namespace Containers {
 
 
 		/// <summary>
-		/// Asynchronous queue
+		/// Asynchronous stack
 		/// </summary>
-		public Queue(){
+		public AsyncStack(){
+			// Sync lock
+			SyncLock = new object();
+
 			Head = null;
-			Tail = null;
 		}
 
 
-		/// <summary>Clear the queue</summary>
+		/// <summary>Clear the stack</summary>
 		public virtual void Clear(){
 			lock(SyncLock){
 				Head = null;
-				Tail = null;
-
 				Items = 0;
 			}
 		}
 
-		/// <summary>Queue</summary>
-		/// <param name="item">Item <typeparamref name="ITEM"/></param>
-		public void Enqueue(ITEM item){
-			if((object)item == null) throw new ArgumentNullException(nameof(item));
+		/// <summary>Push to the stack</summary>
+		/// <param name="item">Item</param>
+		public virtual void Push(ITEM item){
+			if(item == null) throw new ArgumentNullException(nameof(item));
 
 			lock(SyncLock){
-				var node  = new Node();
+				var node = new Node();
 				node.Item = item;
+				node.Next = Head;
 
-				// If the head is empty
-				if(Head == null) Head = node;
-
-				// Não está vazio
-				else Tail.Next = node;
-
-				// Coloque na cauda
-				Tail = node;
+				Head = node;
 
 				Items++;
 			}
 		}
 
-		/// <summary>Dequeue</summary>
-		/// <returns>Item <typeparamref name="ITEM"/></returns>
-		public ITEM Dequeue(){
+		/// <summary>Remove from stack</summary>
+		/// <returns>Item</returns>
+		public ITEM Pop(){
 			ITEM item;
-			TryDequeue(out item);
+			TryPop(out item);
 			return item;
 		}
 
 		/// <summary>Get an item without removing</summary>
-		/// <returns>Item <typeparamref name="ITEM"/></returns>
+		/// <returns>Item</returns>
 		public ITEM Peek(){
 			ITEM item;
 			TryPeek(out item);
 			return item;
 		}
 
-		/// <summary>Try dequeue</summary>
-		/// <param name="item">Item <typeparamref name="ITEM"/></param>
+		/// <summary>Remove from stack</summary>
+		/// <param name="item">Item</param>
 		/// <returns>True if there is an item</returns>
-		public bool TryDequeue(out ITEM item){
+		public bool TryPop(out ITEM item){
 			lock(SyncLock){
-				// If the head is empty
-				if(Head == null){
-					item = default(ITEM);
-					return false;
+				// If there are items in the stack
+				if(Head != null){
+					item = (ITEM)Head.Item;
+					Head = Head.Next;
+
+					Items--;
+					return true;
 				}
 
-				// It is not empty
-				item = Head.Item;
-				Head = Head.Next;
-
-				// If it is the last item
-				if(Head == null) Tail = null;
-
-				Items--;
+				// Stack is empty
+				else item = default(ITEM);
 			}
 
-			return true;
+			return false;
 		}
 
 		/// <summary>Try to pick up an item without removing</summary>
-		/// <param name="item">Item <typeparamref name="ITEM"/></param>
+		/// <param name="item">Item</param>
 		/// <returns>True if there is an item</returns>
 		public bool TryPeek(out ITEM item){
 			lock(SyncLock){
-				// If the head is empty
-				if(Head == null){
-					item = default(ITEM);
-					return false;
+				// If there are items in the stack
+				if(Head != null){
+					item = (ITEM)Head.Item;
+					return true;
 				}
 
-				// It is not empty
-				item = Head.Item;
+				// Stack is empty
+				else item = default(ITEM);
 			}
 
-			return true;
+			return false;
 		}
 	};
 };

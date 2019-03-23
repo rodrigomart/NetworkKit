@@ -25,7 +25,7 @@ using System;
 
 
 namespace NetworkKit.Networking {
-	using Containers;
+	using Collections;
 
 
 	/// <summary>
@@ -398,7 +398,7 @@ namespace NetworkKit.Networking {
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		/// <summary>Recycling of payloads</summary>
-		private static readonly Stack<Payload> Recycling = new Stack<Payload>();
+		private static readonly AsyncStack<Payload> Recycling = new AsyncStack<Payload>();
 
 
 		/// <summary>

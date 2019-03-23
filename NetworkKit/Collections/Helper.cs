@@ -21,7 +21,7 @@
 //
 
 
-namespace NetworkKit.Containers {
+namespace NetworkKit.Collections {
 	/// <summary>
 	/// Helper
 	/// </summary>
