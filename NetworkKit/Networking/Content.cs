@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2019 Rodrigo Martins 
 //
@@ -25,19 +25,15 @@ using System;
 
 
 namespace NetworkKit.Networking {
-	using Collections;
+	using Stream;
 
 
-	/// <summary>
-	/// Payload
-	/// </summary>
-	public class Payload : BitStream {
-#pragma warning disable
-		/// <summary>
-		/// Identification Maker
-		/// </summary>
+	/// <summary>Content</summary>
+	public sealed class Content : BitStream {
+		#pragma warning disable
+		/// <summary>ID Maker</summary>
 		[StructLayout(LayoutKind.Explicit)]
-		internal struct IDMaker {
+		private struct IDMaker {
 			/// <summary>Identifier</summary>
 			[FieldOffset(0)] public UInt32 Identifier;
 
@@ -48,9 +44,9 @@ namespace NetworkKit.Networking {
 			[FieldOffset(2)] public Byte Fragments;
 
 			/// <summary>Fragment</summary>
-			[FieldOffset(3)] public Byte Fragment;
+			[FieldOffset(2)] public Byte Fragment;
 		};
-#pragma warning restore
+		#pragma warning restore
 
 
 		// CONSTANTS
@@ -60,17 +56,17 @@ namespace NetworkKit.Networking {
 		internal const byte PING             = 0x01;
 		internal const byte PONG             = 0x02;
 
-		internal const byte UNLINK           = 0x03;
-		internal const byte SHUTDOWN         = 0x04;
-
-		internal const byte LIMIT_OF_LINKS   = 0x05;
-		internal const byte NOT_ACCESSIBLE   = 0x06;
+		internal const byte LIMIT_OF_LINKS   = 0x03;
+		internal const byte NOT_ACCESSIBLE   = 0x04;
 
 		internal const byte MATCH            = 0x41;
 		internal const byte APPROVAL         = 0x42;
 		internal const byte ACCEPTED         = 0x43;
 		internal const byte REDIRECT         = 0x44;
 		internal const byte DENIED           = 0x45;
+
+		internal const byte UNLINK           = 0x46;
+		internal const byte SHUTDOWN         = 0x47;
 
 		internal const byte NONE             = 0x00;
 		internal const byte UNNAMED          = 0x10;
@@ -81,33 +77,39 @@ namespace NetworkKit.Networking {
 		internal const byte IDENTIFIABLE     = 0xE0;
 
 
-		/// <summary>Recycled</summary>
-		private bool Recycled;
-
-
+		#pragma warning disable
 		/// <summary>Protocol</summary>
-		internal byte Protocol;
+		internal Byte Protocol;
 
 		/// <summary>User flag</summary>
-		internal byte UserFlag;
+		internal Byte UserFlag;
+
 
 		/// <summary>Timestamp</summary>
-		internal uint Timestamp;
+		internal UInt32 Timestamp;
 
 		/// <summary>Sequence</summary>
-		internal ushort Sequence;
+		internal UInt16 Sequence;
+
 
 		/// <summary>Fragments</summary>
-		internal byte Fragments;
+		internal Byte Fragments;
 
 		/// <summary>Fragment</summary>
-		internal byte Fragment;
+		internal Byte Fragment;
+		#pragma warning restore
+
+
+		/// <summary>Is reliable</summary>
+		public bool IsReliable {
+			get {return ((Protocol & IDENTIFIABLE) != 0);}
+		}
 
 
 		/// <summary>Identifier</summary>
 		public uint Identifier {
 			get {
-				var idMaker = default(IDMaker);
+				var idMaker       = default(IDMaker);
 				idMaker.Sequence  = Sequence;
 				idMaker.Fragments = Fragments;
 				idMaker.Fragment  = Fragment;
@@ -134,10 +136,10 @@ namespace NetworkKit.Networking {
 		public override bool Equals(object obj){
 			if(
 				obj != null &&
-				obj is Payload
+				obj is Content
 			){
-				var payload = obj as Payload;
-				return (Identifier == payload.Identifier);
+				var content = obj as Content;
+				return (Identifier == content.Identifier);
 			}
 
 			return false;
@@ -148,13 +150,13 @@ namespace NetworkKit.Networking {
 		public override string ToString(){
 			if((Protocol & IDENTIFIABLE) != 0){
 				return string.Format(
-					"PAYLOAD {0} flag:{1} time:{2}ms ID:{3}",
+					"CONTENT {0} flag:{1} time:{2}ms ID:{3}",
 					Protocol.ToString("X2"), UserFlag.ToString("X2"), Timestamp, Identifier
 				);
 			}
 
 			return string.Format(
-				"PAYLOAD {0} flag:{1} time:{2}ms",
+				"CONTENT {0} flag:{1} time:{2}ms",
 				Protocol.ToString("X2"), UserFlag.ToString("X2"), Timestamp
 			);
 		}
@@ -165,12 +167,12 @@ namespace NetworkKit.Networking {
 			base.Clear();
 
 			// Header size
-			var header = ((Protocol & IDENTIFIABLE) != 0) ? RELIABLE_HEADER : UNRELIABLE_HEADER;
+			var header = ((Protocol & IDENTIFIABLE) != 0)? RELIABLE_HEADER : UNRELIABLE_HEADER ;
 
 			// Moves the writing pointer
 			WritingPoint = header;
 
-			// Moves the reading pointer
+			// Moves the reading point
 			ReadingPoint = header;
 
 			// Size not used
@@ -189,44 +191,26 @@ namespace NetworkKit.Networking {
 
 
 		/// <summary>Copy</summary>
-		/// <param name="payload">Payload</param>
-		public virtual void Copy(Payload payload){
-			base.Copy(payload);
+		/// <param name="content">Content</param>
+		public void Copy(Content content){
+			base.Copy(content);
 
 			// Sets the header
-			Protocol  = payload.Protocol;
-			UserFlag  = payload.UserFlag;
-			Timestamp = payload.Timestamp;
-			Sequence  = payload.Sequence;
-			Fragments = payload.Fragments;
-			Fragment  = payload.Fragment;
-
-			// Header size
-			var header = ((Protocol & IDENTIFIABLE) != 0) ? RELIABLE_HEADER : UNRELIABLE_HEADER;
-
-			// Moves the writing pointer
-			WritingPoint = header;
-
-			// Moves the reading pointer
-			ReadingPoint = header;
-		}
-
-
-		/// <summary>Recycle</summary>
-		public void Recycle(){
-			// It's in recycling
-			if(Recycled) return;
-
-			// Recycle
-			Recycled = true;
-			Recycling.Push(this);
+			Protocol  = content.Protocol;
+			UserFlag  = content.UserFlag;
+			Timestamp = content.Timestamp;
+			Sequence  = content.Sequence;
+			Fragments = content.Fragments;
+			Fragment  = content.Fragment;
 		}
 
 
 		/// <summary>Sets the header</summary>
 		/// <param name="protocol">Protocol</param>
-		internal void SetHeader(byte protocol)
-		{SetHeader(protocol, 0x00, 0x00000000);}
+		internal void SetHeader(byte protocol){
+			// Sets the header
+			Protocol = protocol;
+		}
 
 		/// <summary>Sets the header</summary>
 		/// <param name="protocol">Protocol</param>
@@ -237,14 +221,10 @@ namespace NetworkKit.Networking {
 			byte userflag,
 			uint timestamp
 		){
-			SetHeader(
-				protocol,
-				userflag,
-				timestamp,
-				0x0000,
-				0x00,
-				0x00
-			);
+			// Sets the header
+			Protocol  = protocol;
+			UserFlag  = userflag;
+			Timestamp = timestamp;
 		}
 
 		/// <summary>Sets the header</summary>
@@ -274,17 +254,17 @@ namespace NetworkKit.Networking {
 
 		/// <summary>Fragmenter</summary>
 		/// <param name="mtu">Mtu</param>
-		internal Payload[] Fragmenter(uint mtu){
+		internal Content[] Fragmenter(uint mtu){
 			// Counting and sizing
 			// Scaling divides the package into equal sizes
 			var header = RELIABLE_HEADER >> 3;
-			var count = (int)Math.Floor((LengthBytes - header) / (double)mtu);
-			var size = (int)Math.Floor((LengthBytes - header) / (double)count);
+			var count  = (int)Math.Floor((LengthBytes - header) / (double)mtu);
+			var size   = (int)Math.Floor((LengthBytes - header) / (double)count);
 
-			var payloads = new Payload[count];
+			var contents = new Content[count];
 			for(int frag = 1; frag <= count; frag++){
-				// Create fragmented payload
-				payloads[frag - 1] = Create(
+				// Create fragmented content
+				contents[frag - 1] = new Content(
 					FRAGMENT, UserFlag, Timestamp,
 					Sequence, (byte)count, (byte)frag
 				);
@@ -293,39 +273,39 @@ namespace NetworkKit.Networking {
 				var point = size * (frag - 1);
 
 				// Copy the data
-				payloads[frag - 1].SetBytes(
+				contents[frag - 1].SetBytes(
 					ByteData,
 					point + header,
 					size
 				);
 			}
 
-			return payloads;
+			return contents;
 		}
 
 		/// <summary>Defragmenter</summary>
-		/// <param name="payload">Payload</param>
-		internal void Defragmenter(Payload payload){
+		/// <param name="content">Content</param>
+		internal void Defragmenter(Content content){
 			// Check compatibility
 			if(
-				Sequence  != payload.Sequence ||
-				Fragments != payload.Fragments
+				Sequence  != content.Sequence ||
+				Fragments != content.Fragments
 			) return;
 
 			// Resize to the appropriate size
-			Growing(payload.Used - RELIABLE_HEADER);
+			Growing(content.Used - RELIABLE_HEADER);
 
 			// Change fragment count
 			Fragment++;
 
 			// Copy point
 			var header = RELIABLE_HEADER >> 3;
-			var point = (payload.LengthBytes - header) * (payload.Fragment - 1);
-			var size = payload.LengthBytes - header;
+			var point  = (content.LengthBytes - header) * (content.Fragment - 1);
+			var size   = (content.LengthBytes - header);
 
 			// Copy the data
 			SetBytes(
-				payload.ByteData,
+				content.ByteData,
 				point + header,
 				size
 			);
@@ -338,15 +318,15 @@ namespace NetworkKit.Networking {
 			WritingPoint = 0;
 
 			// WRITE THE HEADER
-			Write(Protocol);
-			Write(UserFlag);
-			Write(Timestamp);
+			WriteByte(Protocol);
+			WriteByte(UserFlag);
+			WriteUInt32(Timestamp);
 
 			// IDENTIFIABLE HEAD
 			if((Protocol & IDENTIFIABLE) != 0){
-				Write(Sequence);
-				Write(Fragments);
-				Write(Fragment);
+				WriteUInt16(Sequence);
+				WriteByte(Fragments);
+				WriteByte(Fragment);
 			}
 
 			// Moves the writing pointer to the end
@@ -372,72 +352,143 @@ namespace NetworkKit.Networking {
 		}
 
 
-		/// <summary>
-		/// Payload
-		/// </summary>
-		private Payload() :
+		/// <summary>Content</summary>
+		private Content() :
 			this(NONE)
 		{}
 
-		/// <summary>Payload</summary>
+		/// <summary>Content</summary>
 		/// <param name="protocol">Protocol</param>
-		private Payload(byte protocol){
-			// Sets the header
-			Protocol  = protocol;
-			UserFlag  = 0x00;
-			Timestamp = 0x00000000;
-			Sequence  = 0x0000;
-			Fragments = 0x00;
-			Fragment  = 0x00;
-		}
+		private Content(
+			byte protocol
+		) :
+			this(
+				protocol,
+				0x00,
+				0x00000000,
+				0x0000,
+				0x00,
+				0x00
+			)
+		{}
 
-
-
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		/// STATIC
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		/// <summary>Recycling of payloads</summary>
-		private static readonly AsyncStack<Payload> Recycling = new AsyncStack<Payload>();
-
-
-		/// <summary>
-		/// Payload.
-		/// Created from the recycling pool.
-		/// </summary>
-		/// <returns>Carga útil</returns>
-		public static Payload New()
-		{return Create(NONE, 0, 0, 0, 0, 0);}
-
-		/// <summary>
-		/// Reliable payload.
-		/// Created from the recycling pool.
-		/// </summary>
-		/// <returns>Carga útil</returns>
-		public static Payload Reliable()
-		{return Create(RELIABLE, 0, 0, 0, 0, 0);}
-
-
-		/// <summary>Payload</summary>
-		/// <param name="protocol">Protocol</param>
-		internal static Payload Create(byte protocol)
-		{return Create(protocol, 0, 0, 0, 0, 0);}
-
-		/// <summary>Payload</summary>
+		/// <summary>Content</summary>
 		/// <param name="protocol">Protocol</param>
 		/// <param name="userflag">User flag</param>
 		/// <param name="timestamp">Timestamp</param>
-		internal static Payload Create(byte protocol, byte userflag, uint timestamp)
-		{return Create(protocol, userflag, timestamp, 0, 0, 0);}
+		private Content(
+			byte protocol,
+			byte userflag,
+			uint timestamp
+		) :
+			this(
+				protocol,
+				userflag,
+				timestamp,
+				0x0000,
+				0x00,
+				0x00
+			)
+		{}
 
-		/// <summary>Payload</summary>
+		/// <summary>Content</summary>
 		/// <param name="protocol">Protocol</param>
 		/// <param name="userflag">User flag</param>
 		/// <param name="timestamp">Timestamp</param>
 		/// <param name="sequence">Sequence</param>
 		/// <param name="fragments">Fragments</param>
 		/// <param name="fragment">Fragment</param>
-		internal static Payload Create(
+		private Content(
+			byte   protocol,
+			byte   userflag,
+			uint   timestamp,
+			ushort sequence,
+			byte   fragments,
+			byte   fragment
+		){
+			// Sets the header
+			Protocol  = protocol;
+			UserFlag  = userflag;
+			Timestamp = timestamp;
+			Sequence  = sequence;
+			Fragments = fragments;
+			Fragment  = fragment;
+
+			// Header size
+			var header = ((Protocol & IDENTIFIABLE) != 0) ? RELIABLE_HEADER : UNRELIABLE_HEADER;
+
+			// Moves the writing pointer
+			WritingPoint = header;
+
+			// Moves the reading point
+			ReadingPoint = header;
+
+			// Size not used
+			Unused -= header;
+
+			// Size used
+			Used += header;
+		}
+
+
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		/// STATIC IMPLEMENTATION
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+		/// <summary>Unreliable</summary>
+		/// <returns>Content</returns>
+		public static Content Unreliable()
+		{return new Content(UNNAMED);}
+
+		/// <summary>Reliable</summary>
+		/// <returns>Content</returns>
+		public static Content Reliable()
+		{return new Content(RELIABLE);}
+
+
+		/// <summary>New</summary>
+		/// <param name="protocol">Protocol</param>
+		internal static Content New(
+			byte protocol
+		){
+			return new Content(
+				protocol,
+				0x00,
+				0x00000000,
+				0x0000,
+				0x00,
+				0x00
+			);
+		}
+
+		/// <summary>New</summary>
+		/// <param name="protocol">Protocol</param>
+		/// <param name="userflag">User flag</param>
+		/// <param name="timestamp">Timestamp</param>
+		internal static Content New(
+			byte protocol,
+			byte userflag,
+			uint timestamp
+		){
+			return new Content(
+				protocol,
+				userflag,
+				timestamp,
+				0x0000,
+				0x00,
+				0x00
+			);
+		}
+
+		/// <summary>New</summary>
+		/// <param name="protocol">Protocol</param>
+		/// <param name="userflag">User flag</param>
+		/// <param name="timestamp">Timestamp</param>
+		/// <param name="sequence">Sequence</param>
+		/// <param name="fragments">Fragments</param>
+		/// <param name="fragment">Fragment</param>
+		internal static Content New(
 			byte protocol,
 			byte userflag,
 			uint timestamp,
@@ -445,23 +496,14 @@ namespace NetworkKit.Networking {
 			byte fragments,
 			byte fragment
 		){
-			// Recycled payload
-			Payload payload = Recycling.Pop();
-			if(payload == null) payload = new Payload();
-			payload.Recycled = false;
-
-			// Sets the header
-			payload.Protocol  = protocol;
-			payload.UserFlag  = userflag;
-			payload.Timestamp = timestamp;
-			payload.Sequence  = sequence;
-			payload.Fragments = fragments;
-			payload.Fragment  = fragment;
-
-			// Clear
-			payload.Clear();
-
-			return payload;
+			return new Content(
+				protocol,
+				userflag,
+				timestamp,
+				sequence,
+				fragments,
+				fragment
+			);
 		}
 	};
 };

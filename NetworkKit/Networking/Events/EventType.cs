@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2019 Rodrigo Martins 
 //
@@ -20,7 +20,7 @@
 //    Rodrigo Martins <rodrigo.martins.071090@gmail.com>
 //
 
-namespace NetworkKit.Networking {
+namespace NetworkKit.Networking.Events {
 	/// <summary>
 	/// Event of type
 	/// </summary>
@@ -31,7 +31,7 @@ namespace NetworkKit.Networking {
 		Redirect,
 		Redirected,
 		Approval,
-		Payload,
+		Content,
 		Unlinked,
 		Failed,
 		Send

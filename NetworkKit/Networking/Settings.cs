@@ -21,10 +21,14 @@
 //
 
 namespace NetworkKit.Networking {
-	/// <summary>
-	/// Settings
-	/// </summary>
+	/// <summary>Settings</summary>
 	public sealed class Settings {
+		/// <summary>
+		/// Reuse sochet address.
+		/// The default is true.
+		/// </summary>
+		public bool ReuseAddress = true;
+
 		/// <summary>
 		/// Encrypts the data to be transmitted.
 		/// The encryption key is unique for each connection and exchanged through the Diffie-Hellman protocol.
@@ -32,10 +36,10 @@ namespace NetworkKit.Networking {
 		public bool EncryptData = true;
 
 		/// <summary>
-		/// Use the events in steps.
-		/// When <c>true</c> the <see cref="Network.Step()" /> method must be called to process network events.
+		/// Process events by calling event.
+		/// When <c>true</c> the <see cref="Network.Event()" /> method must be called to process network events.
 		/// </summary>
-		public bool UseStepEvents = true;
+		public bool UseEvents = false;
 
 		/// <summary>
 		/// Requires approval.
@@ -73,6 +77,12 @@ namespace NetworkKit.Networking {
 		/// Use 0 to prevent it from receiving new connections, the default amount is 25 links.
 		/// </summary>
 		public uint MaxLinks = 25u;
+
+		/// <summary>
+		/// Maximum round trip time.
+		/// Thre default size is 250 miliseconds.
+		/// </summary>
+		public uint TTL = 250u;
 
 		/// <summary>
 		/// Maximum transmission unit in bytes.

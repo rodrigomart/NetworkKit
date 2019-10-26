@@ -24,17 +24,15 @@ using System.Runtime.InteropServices;
 using System;
 
 
-namespace NetworkKit.Networking {
-#pragma warning disable
-	/// <summary>
-	/// Byte conversion
-	/// </summary>
+namespace NetworkKit.Stream {
+	/// <summary>Bit Converter</summary>
 	[StructLayout(LayoutKind.Explicit)]
-	public struct ByteConverter {
-		[FieldOffset(0)] public SByte  s8;
-		[FieldOffset(0)] public Int16  s16;
-		[FieldOffset(0)] public Int32  s32;
-		[FieldOffset(0)] public Int64  s64;
+	internal struct BitConverter {
+		#pragma warning disable
+		[FieldOffset(0)] public SByte s8;
+		[FieldOffset(0)] public Int16 s16;
+		[FieldOffset(0)] public Int32 s32;
+		[FieldOffset(0)] public Int64 s64;
 
 		[FieldOffset(0)] public Byte   u8;
 		[FieldOffset(0)] public UInt16 u16;
@@ -56,25 +54,15 @@ namespace NetworkKit.Networking {
 		[FieldOffset(7)] public Byte Endian7;
 
 
-		/// <summary>Apply mask</summary>
-		/// <param name="mask">Byte Mask</param>
-		public void ApplyMask(UInt64 mask){
-			ByteConverter bitMask = mask;
-			bitMask.Exchange64bits();
-
-			// Apply mask
-			u64 ^= bitMask.u64;
-		}
-
 		/// <summary>
 		/// 16 bits end exchange.
 		/// Converts Big-endian to Little-endian.
 		/// </summary>
 		public void Exchange16bits(){
 			// To Little-endian
-			if(!ByteConverter.IsLittle()){
+			if(!BitConverter.IsLittle()){
 				// Temporary for conversion
-				ByteConverter temp = this;
+				BitConverter temp = this;
 
 				Endian0 = temp.Endian1;
 				Endian1 = temp.Endian0;
@@ -87,9 +75,9 @@ namespace NetworkKit.Networking {
 		/// </summary>
 		public void Exchange32bits(){
 			// To Little-endian
-			if(!ByteConverter.IsLittle()){
+			if(!BitConverter.IsLittle()){
 				// Temporary for conversion
-				ByteConverter temp = this;
+				BitConverter temp = this;
 
 				Endian0 = temp.Endian3;
 				Endian1 = temp.Endian2;
@@ -104,9 +92,9 @@ namespace NetworkKit.Networking {
 		/// </summary>
 		public void Exchange64bits(){
 			// To Little-endian
-			if(!ByteConverter.IsLittle()){
+			if(!BitConverter.IsLittle()){
 				// Temporary for conversion
-				ByteConverter temp = this;
+				BitConverter temp = this;
 
 				Endian0 = temp.Endian7;
 				Endian1 = temp.Endian6;
@@ -123,7 +111,7 @@ namespace NetworkKit.Networking {
 		/// <summary>Is little-endian</summary>
 		/// <returns>True if little-endian</returns>
 		public static bool IsLittle(){
-			ByteConverter bytes = default(ByteConverter);
+			BitConverter bytes = default(BitConverter);
 			bytes.s32 = 1;
 
 			return (bytes.Endian0 == 1);
@@ -131,71 +119,70 @@ namespace NetworkKit.Networking {
 
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(Char val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(Char val){
+			BitConverter bytes = default(BitConverter);
 			bytes.chr = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(SByte val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(SByte val){
+			BitConverter bytes = default(BitConverter);
 			bytes.s8 = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(Int16 val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(Int16 val){
+			BitConverter bytes = default(BitConverter);
 			bytes.s16 = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(Int32 val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(Int32 val){
+			BitConverter bytes = default(BitConverter);
 			bytes.s32 = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(Int64 val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(Int64 val){
+			BitConverter bytes = default(BitConverter);
 			bytes.s64 = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(Byte val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(Byte val){
+			BitConverter bytes = default(BitConverter);
 			bytes.u8 = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(UInt16 val)
-		{
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(UInt16 val){
+			BitConverter bytes = default(BitConverter);
 			bytes.u16 = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(UInt32 val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(UInt32 val){
+			BitConverter bytes = default(BitConverter);
 			bytes.u32 = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(UInt64 val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(UInt64 val){
+			BitConverter bytes = default(BitConverter);
 			bytes.u64 = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(Single val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(Single val){
+			BitConverter bytes = default(BitConverter);
 			bytes.f32 = val; return bytes;
 		}
 
 		/// <summary>Implicit conversion</summary>
-		public static implicit operator ByteConverter(Double val){
-			ByteConverter bytes = default(ByteConverter);
+		public static implicit operator BitConverter(Double val){
+			BitConverter bytes = default(BitConverter);
 			bytes.f64 = val; return bytes;
 		}
+		#pragma warning restore
 	};
-#pragma warning restore
 };

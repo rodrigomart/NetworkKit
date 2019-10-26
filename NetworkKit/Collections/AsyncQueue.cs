@@ -24,10 +24,9 @@ using System;
 
 
 namespace NetworkKit.Collections {
-	/// <summary>
-	/// Asynchronous queue
-	/// </summary>
-	public class AsyncQueue<ITEM> {
+	/// <summary>Asynchronous queue</summary>
+	/// <typeparam name="ITEM">Item type</typeparam>
+	public sealed class AsyncQueue<ITEM> {
 		/// <summary>Node</summary>
 		private class Node {
 			/// <summary>Item</summary>
@@ -53,12 +52,12 @@ namespace NetworkKit.Collections {
 
 
 		/// <summary>Is empty</summary>
-		public virtual bool IsEmpty {
+		public bool IsEmpty {
 			get {return (Items == 0);}
 		}
 
 		/// <summary>Count</summary>
-		public virtual int Count {
+		public int Count {
 			get {return Items;}
 		}
 
@@ -76,7 +75,7 @@ namespace NetworkKit.Collections {
 
 
 		/// <summary>Clear</summary>
-		public virtual void Clear(){
+		public void Clear(){
 			lock(SyncLock){
 				Head = null;
 				Tail = null;
@@ -87,7 +86,7 @@ namespace NetworkKit.Collections {
 
 		/// <summary>Enqueue</summary>
 		/// <param name="item">Item</param>
-		public virtual void Enqueue(ITEM item){
+		public void Enqueue(ITEM item){
 			if(item == null) throw new ArgumentNullException(nameof(item));
 
 			lock(SyncLock){
@@ -109,7 +108,7 @@ namespace NetworkKit.Collections {
 
 		/// <summary>Dequeue</summary>
 		/// <returns>Item</returns>
-		public virtual ITEM Dequeue(){
+		public ITEM Dequeue(){
 			ITEM item;
 			TryDequeue(out item);
 			return item;
@@ -117,7 +116,7 @@ namespace NetworkKit.Collections {
 
 		/// <summary>Get an item without removing</summary>
 		/// <returns>Item</returns>
-		public virtual ITEM Peek(){
+		public ITEM Peek(){
 			ITEM item;
 			TryPeek(out item);
 			return item;
@@ -126,7 +125,7 @@ namespace NetworkKit.Collections {
 		/// <summary>Try dequeue</summary>
 		/// <param name="item">Item <typeparamref name="ITEM"/></param>
 		/// <returns>True if there is an item</returns>
-		public virtual bool TryDequeue(out ITEM item){
+		public bool TryDequeue(out ITEM item){
 			lock(SyncLock){
 				// If the head is empty
 				if(Head == null){
@@ -150,7 +149,7 @@ namespace NetworkKit.Collections {
 		/// <summary>Try to pick up an item without removing</summary>
 		/// <param name="item">Item</param>
 		/// <returns>True if there is an item</returns>
-		public virtual bool TryPeek(out ITEM item){
+		public bool TryPeek(out ITEM item){
 			lock(SyncLock){
 				// If the head is empty
 				if(Head == null){

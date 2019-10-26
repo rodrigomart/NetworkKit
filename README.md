@@ -15,9 +15,9 @@ network.Settings.MaxLinks         = 100u;
 
 // Network event
 network.OnFailed     += (link, failure) => {};
-network.OnUnlinked   += (link, reason) => {};
-network.OnPayload    += (link, payload) => {};
-network.OnApproval   += (link, payload) => {};
+network.OnUnlinked   += (link, reason)  => {};
+network.OnContent    += (link, content) => {};
+network.OnApproval   += (link, content) => {};
 network.OnRedirected += (link) => {};
 network.OnRedirect   += (link) => {};
 network.OnLinked     += (link) => {};
@@ -35,12 +35,12 @@ network.Link("localhost:15000");
 ## Example in unity
 
 ```C#
-// In the settings set "UseStepEvents" to true
-network.Settings.UseStepEvents = true;
+// In the settings set "UseEvents" to true
+network.Settings.UseEvents = true;
 
-// Call the method "Step ()" every frame
+// Call the method "Event()" every frame
 void Update(){
-  network.Step();
+  network.Event();
 }
 ```
 

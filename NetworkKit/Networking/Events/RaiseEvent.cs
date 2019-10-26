@@ -20,13 +20,23 @@
 //    Rodrigo Martins <rodrigo.martins.071090@gmail.com>
 //
 
-namespace NetworkKit.Networking {
-	/// <summary>Reason</summary>
-	public enum Reason {
-		Unlinked,
-		Muted,
-		Timeout,
-		Shutdown,
-		Denied
+namespace NetworkKit.Networking.Events {
+	/// <summary>Raise event</summary>
+	internal struct RaiseEvent {
+		/// <summary>Event type</summary>
+		public EventType EventType;
+
+		/// <summary>Failure</summary>
+		public Failure Failure;
+
+		/// <summary>Reason</summary>
+		public Reason Reason;
+
+
+		/// <summary>Link</summary>
+		public Link Link;
+
+		/// <summary>Content</summary>
+		public Content Content;
 	};
 };

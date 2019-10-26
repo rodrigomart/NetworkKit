@@ -24,10 +24,9 @@ using System;
 
 
 namespace NetworkKit.Collections {
-	/// <summary>
-	/// Asynchronous stack
-	/// </summary>
-	public class AsyncStack<ITEM> {
+	/// <summary>Asynchronous stack</summary>
+	/// <typeparam name="ITEM">Item type</typeparam>
+	public sealed class AsyncStack<ITEM> {
 		/// <summary>Node</summary>
 		private class Node {
 			/// <summary>Item</summary>
@@ -50,12 +49,12 @@ namespace NetworkKit.Collections {
 
 
 		/// <summary>Is empty</summary>
-		public virtual bool IsEmpty {
+		public bool IsEmpty {
 			get {return (Items == 0);}
 		}
 
 		/// <summary>Count</summary>
-		public virtual int Count {
+		public int Count {
 			get {return Items;}
 		}
 
@@ -72,7 +71,7 @@ namespace NetworkKit.Collections {
 
 
 		/// <summary>Clear the stack</summary>
-		public virtual void Clear(){
+		public void Clear(){
 			lock(SyncLock){
 				Head = null;
 				Items = 0;
@@ -81,7 +80,7 @@ namespace NetworkKit.Collections {
 
 		/// <summary>Push to the stack</summary>
 		/// <param name="item">Item</param>
-		public virtual void Push(ITEM item){
+		public void Push(ITEM item){
 			if(item == null) throw new ArgumentNullException(nameof(item));
 
 			lock(SyncLock){

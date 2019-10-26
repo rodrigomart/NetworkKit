@@ -21,18 +21,18 @@
 //
 
 namespace NetworkKit.Networking {
-	/// <summary>Failure handler delegate</summary>
+	/// <summary>Content Handler Delegate</summary>
+	public delegate void ContentHandler(Link link, Content content);
+
+	/// <summary>Failure Handler Delegate</summary>
 	public delegate void FailureHandler(Link link, Failure failure);
 
-	/// <summary>Reason handler delegate</summary>
+	/// <summary>Reason Handler Delegate</summary>
 	public delegate void ReasonHandler(Link link, Reason reason);
 
-	/// <summary>Payload handler delegate</summary>
-	public delegate void PayloadHandler(Link link, Payload payload);
-
-	/// <summary>Link handler delegate</summary>
+	/// <summary>Link Handler Delegate</summary>
 	public delegate void LinkHandler(Link link);
 
-	/// <summary>State handler delegate</summary>
+	/// <summary>State Handler Delegate</summary>
 	public delegate void StateHandler();
 };

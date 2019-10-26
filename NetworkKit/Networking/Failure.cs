@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2019 Rodrigo Martins 
 //
@@ -24,6 +24,7 @@ namespace NetworkKit.Networking {
 	/// <summary>Failure</summary>
 	public enum Failure {
 		Unknown,
+		InvalidAddress,
 		NotAccessible,
 		LimitOfLinks
 	};

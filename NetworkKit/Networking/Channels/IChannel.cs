@@ -20,32 +20,34 @@
 //    Rodrigo Martins <rodrigo.martins.071090@gmail.com>
 //
 
-using System.Net;
+namespace NetworkKit.Networking.Channels {
+	/// <summary>In/Out Handler Delegate</summary>
+	internal delegate void InOutHandler(Content content);
 
 
-namespace NetworkKit.Networking {
 	/// <summary>
-	/// Raise event
+	/// Interface for Channel
 	/// </summary>
-	internal struct RaiseEvent {
-		/// <summary>Payload</summary>
-		public Payload Payload;
+	internal interface IChannel {
+		/// <summary>Released</summary>
+		bool Released();
 
+		/// <summary>Muted</summary>
+		bool Muted();
 
-		/// <summary>Network Address</summary>
-		public EndPoint EndPoint;
+		/// <summary>Reset</summary>
+		void Reset();
 
-		/// <summary>Link</summary>
-		public Link Link;
+		/// <summary>Inlet</summary>
+		/// <param name="content">Content</param>
+		void Inlet(Content content);
 
+		/// <summary>Outlet</summary>
+		/// <param name="content">Content</param>
+		void Outlet(Content content);
 
-		/// <summary>Event type</summary>
-		public EventType EventType;
-
-		/// <summary>Failure</summary>
-		public Failure Failure;
-
-		/// <summary>Reason</summary>
-		public Reason Reason;
+		/// <summary>Timeout</summary>
+		/// <param name="time">Time</param>
+		void Timeout(uint time);
 	};
 };
